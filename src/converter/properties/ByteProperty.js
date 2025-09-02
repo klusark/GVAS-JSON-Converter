@@ -1,12 +1,12 @@
 const {getStringByteSize} = require("../sav-writer");
 
 class ByteProperty {
-    static SIZE_ONE = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
 
     constructor(name, savReader) {
         this.name = name;
         this.type = "ByteProperty";
-        savReader.skipBytes(8); // contains UNKNOWN
+        this.unknown = savReader.readInt32(); // contains UNKNOWN
+        this.unknown2 = savReader.readInt32();
 
         this.subtype = savReader.readString();
 
@@ -15,19 +15,31 @@ class ByteProperty {
             this.guid = savReader.readGuid();
         }
 
-        this.value = savReader.readByte();
+        this.subtype2 = null;
+
+        if (this.unknown != 1) {
+            this.subtype2 = savReader.readString();
+        } else {
+            this.value = savReader.readByte();
+        }
     }
 
     getByteSize() {
-        return getStringByteSize(this.name) +
-            getStringByteSize(this.subtype) + 27 +
+        let size =  getStringByteSize(this.name) +
+            getStringByteSize(this.subtype) + 26 + this.unknown +
             (this.hasGuid ? 16 : 0);
+
+        /*if (this.subtype2) {
+            size += getStringByteSize(this.subtype2);
+        }*/
+        return size;
     }
 
     write(savWriter) {
         savWriter.writeString(this.name);
         savWriter.writeString(this.type);
-        savWriter.writeArray(ByteProperty.SIZE_ONE);
+        savWriter.writeInt32(this.unknown);
+        savWriter.writeInt32(this.unknown2);
         savWriter.writeString(this.subtype);
 
         savWriter.writeBoolean(this.hasGuid);
@@ -35,7 +47,13 @@ class ByteProperty {
             savWriter.writeGuid(this.guid);
         }
 
-        savWriter.writeByte(this.value);
+        //savWriter.writeByte(this.value);
+
+        if (this.subtype2) {
+            savWriter.writeString(this.subtype2);
+        } else {
+            savWriter.writeByte(this.value);
+        }
     }
 
     // backwards compatibility

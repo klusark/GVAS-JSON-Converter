@@ -4,7 +4,9 @@ const BoolProperty = require("./BoolProperty");
 const IntProperty = require("./IntProperty");
 const UInt32Property = require("./UInt32Property");
 const Int64Property = require("./Int64Property");
+const DoubleProperty = require("./DoubleProperty");
 const StrProperty = require("./StrProperty");
+const TextProperty = require("./TextProperty");
 const NameProperty = require("./NameProperty");
 const EnumProperty = require("./EnumProperty");
 const FloatProperty = require("./FloatProperty");
@@ -24,7 +26,9 @@ module.exports = {
     IntProperty,
     UInt32Property,
     Int64Property,
+    DoubleProperty,
     StrProperty,
+    TextProperty,
     NameProperty,
     EnumProperty,
     FloatProperty,

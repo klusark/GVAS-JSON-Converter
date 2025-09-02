@@ -4,17 +4,18 @@ class MapProperty {
     static padding = new Uint8Array([0x00, 0x00, 0x00, 0x00]);
     type = "MapProperty";
 
-    constructor(name, savReader) {
+    constructor(name, savReader, inStruct) {
         this.name = name;
-        savReader.readUInt32(); // contentSize
-        savReader.skipBytes(4); // padding
+        const contentSize = savReader.readUInt32(); // contentSize
+        const padding = savReader.readUInt32(); // padding
         this.keyType = savReader.readString();
         this.valueType = savReader.readString();
-        savReader.skipBytes(1);
+        const bit = savReader.readBoolean();
 
         const tempMap = new Map();
-        savReader.skipBytes(4); // padding
+        const padding2 = savReader.readUInt32(); // padding
         const contentCount = savReader.readUInt32();
+
 
         for (let i = 0; i < contentCount; i++) {
 
@@ -23,7 +24,19 @@ class MapProperty {
 
             switch (this.keyType) {
                 case "StructProperty":
-                    currentKey = savReader.readBytes(16);
+                    if (savReader.saveGameVersion == 3 && (inStruct || this.valueType == "ObjectProperty")) {
+                        this.weirdFormat = true
+                        currentKey = [];
+                        let prop = null;
+
+                        while (!(prop instanceof NoneProperty)) {
+                            prop = savReader.readProperty();
+                            currentKey.push(prop);
+                        }
+                        break;
+                    } else {
+                        currentKey = savReader.readBytes(16);
+                    }
                     break;
 
                 case "IntProperty":
@@ -33,7 +46,12 @@ class MapProperty {
                 case "StrProperty":
                     currentKey = savReader.readString();
                     break;
-
+                case "NameProperty":
+                    currentKey = savReader.readString();
+                    break;
+                case "ByteProperty":
+                    currentKey = savReader.readString();
+                    break;
                 default:
                     throw new Error("Key Type not implemented: " + this.keyType);
             }
@@ -66,6 +84,14 @@ class MapProperty {
                     currentValue = savReader.readString();
                     break;
 
+                case "DoubleProperty":
+                    currentValue = savReader.readInt64();
+                    break;
+
+                case "ObjectProperty":
+                    currentValue = savReader.readString();
+                    break;
+
                 default:
                     throw new Error("Value Type not implemented: " + this.valueType);
             }
@@ -78,26 +104,49 @@ class MapProperty {
     }
 
     toBytes() {
-        const {writeBytes, writeInt32, writeFloat32, writeString, writeUint32} = require("../value-writer");
+        const {writeBytes, writeInt32, writeFloat32, writeString, writeUint32, writeInt64} = require("../value-writer");
         const {assignPrototype} = require("../converter");
 
         let byteArrayContent = new Uint8Array(0);
 
         const tempMap = new Map(this.value);
 
+        let toConcat = [];
+
         for (let [currentKey, currentValue] of tempMap) {
 
             switch (this.keyType) {
                 case "StructProperty":
-                    byteArrayContent = new Uint8Array([...byteArrayContent, ...writeBytes(currentKey)]);
+                    if (this.weirdFormat) {
+                        for (let i = 0; i < currentKey.length; i++) {
+                            toConcat.push(assignPrototype(currentKey[i]).toBytes());
+                            //byteArrayContent = new Uint8Array([...byteArrayContent, ...assignPrototype(currentValue[i]).toBytes()]);
+                        }
+                    break;
+                    } else {
+                        toConcat.push(writeBytes(currentKey));
+                    }
+                    //byteArrayContent = new Uint8Array([...byteArrayContent, ...writeBytes(currentKey)]);
                     break;
 
                 case "IntProperty":
-                    byteArrayContent = new Uint8Array([...byteArrayContent, ...writeInt32(currentKey)]);
+                    toConcat.push(writeInt32(currentKey));
+                    //byteArrayContent = new Uint8Array([...byteArrayContent, ...writeInt32(currentKey)]);
                     break;
 
                 case "StrProperty":
-                    byteArrayContent = new Uint8Array([...byteArrayContent, ...writeString(currentKey)]);
+                    toConcat.push(writeString(currentKey));
+                    //byteArrayContent = new Uint8Array([...byteArrayContent, ...writeString(currentKey)]);
+                    break;
+
+                case "NameProperty":
+                    toConcat.push(writeString(currentKey));
+                    //byteArrayContent = new Uint8Array([...byteArrayContent, ...writeString(currentKey)]);
+                    break;
+
+                case "ByteProperty":
+                    toConcat.push(writeString(currentKey));
+                    //byteArrayContent = new Uint8Array([...byteArrayContent, ...writeString(currentKey)]);
                     break;
 
                 default:
@@ -108,28 +157,42 @@ class MapProperty {
 
                 case "StructProperty":
                     for (let i = 0; i < currentValue.length; i++) {
-                        byteArrayContent = new Uint8Array([...byteArrayContent, ...assignPrototype(currentValue[i]).toBytes()]);
+                        toConcat.push(assignPrototype(currentValue[i]).toBytes());
+                        //byteArrayContent = new Uint8Array([...byteArrayContent, ...assignPrototype(currentValue[i]).toBytes()]);
                     }
                     break;
 
                 case "IntProperty":
-                    byteArrayContent = new Uint8Array([...byteArrayContent, ...writeInt32(currentValue)]);
+                    toConcat.push(writeInt32(currentValue));
+                    //byteArrayContent = new Uint8Array([...byteArrayContent, ...writeInt32(currentValue)]);
                     break;
 
                 case "FloatProperty":
-                    byteArrayContent = new Uint8Array([...byteArrayContent, ...writeFloat32(currentValue)]);
+                    toConcat.push(writeFloat32(currentValue));
+                    //byteArrayContent = new Uint8Array([...byteArrayContent, ...writeFloat32(currentValue)]);
                     break;
 
                 case "StrProperty":
-                    byteArrayContent = new Uint8Array([...byteArrayContent, ...writeString(currentValue)]);
+                    toConcat.push(writeString(currentValue));
+                    //byteArrayContent = new Uint8Array([...byteArrayContent, ...writeString(currentValue)]);
                     break;
 
                 case "BoolProperty":
                     if (currentValue === true) {
-                        byteArrayContent = new Uint8Array([...byteArrayContent, 0x01]);
+                        toConcat.push(new Uint8Array([0x01]));
+                        //byteArrayContent = new Uint8Array([...byteArrayContent, 0x01]);
                     } else {
-                        byteArrayContent = new Uint8Array([...byteArrayContent, 0x00]);
+                        toConcat.push(new Uint8Array([0x00]));
+                        //byteArrayContent = new Uint8Array([...byteArrayContent, 0x00]);
                     }
+                    break;
+
+                case "DoubleProperty":
+                    toConcat.push(writeInt64(currentValue));
+                    break;
+
+                case "ObjectProperty":
+                    toConcat.push(writeString(currentValue));
                     break;
 
                 default:
@@ -137,6 +200,18 @@ class MapProperty {
             }
 
         }
+
+        let totalLength = 0;
+        toConcat.forEach(arr => {
+            totalLength += arr.length;
+        });
+        byteArrayContent = new Uint8Array(totalLength);
+
+        let offset = 0;
+        toConcat.forEach(arr => {
+            byteArrayContent.set(arr, offset);
+            offset += arr.length;
+        });
 
         return new Uint8Array([
             ...writeString(this.name),

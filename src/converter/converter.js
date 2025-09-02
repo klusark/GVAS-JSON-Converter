@@ -26,6 +26,10 @@ function convertSavToJson(savFileArrayBuffer) {
 function convertJsonToSav(jsonString) {
     const rawProperties = JSON.parse(jsonString);
 
+    return convertRawToSav(rawProperties);
+}
+
+function convertRawToSav(rawProperties) {
     const byteArrays = rawProperties.map(rawProperty => {
         const typedProperty = assignPrototype(rawProperty);
         return typedProperty.toBytes();
@@ -46,5 +50,6 @@ function convertJsonToSav(jsonString) {
 module.exports = {
     convertSavToJson,
     convertJsonToSav,
+    convertRawToSav,
     assignPrototype
 };

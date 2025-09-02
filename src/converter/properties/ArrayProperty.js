@@ -81,13 +81,16 @@ class ArrayProperty {
 
         let contentSize;
 
+        let toConcat = [];
+
         switch (this.subtype) {
             case "StructProperty":
 
                 switch (this.genericType) {
                     case "Guid":
                         for (let i = 0; i < contentCount; i++) {
-                            byteArrayContent = new Uint8Array([...byteArrayContent, ...writeBytes(this.value[i])]);
+                            toConcat.push(writeBytes(this.value[i]));
+                            //byteArrayContent = new Uint8Array([...byteArrayContent, ...writeBytes(this.value[i])]);
                         }
                         break;
 
@@ -96,13 +99,26 @@ class ArrayProperty {
 
                             if (Array.isArray(this.value[i])) {
                                 for (let j = 0; j < this.value[i].length; j++) {
-                                    byteArrayContent = new Uint8Array([...byteArrayContent, ...assignPrototype(this.value[i][j]).toBytes()]);
+                                    toConcat.push(assignPrototype(this.value[i][j]).toBytes());
+                                    //byteArrayContent = new Uint8Array([...byteArrayContent, ...assignPrototype(this.value[i][j]).toBytes()]);
                                 }
                             } else {
-                                byteArrayContent = new Uint8Array([...byteArrayContent, ...assignPrototype(this.value[i]).toBytes()]);
+                                toConcat.push(assignPrototype(this.value[i][j]).toBytes());
+                                //byteArrayContent = new Uint8Array([...byteArrayContent, ...assignPrototype(this.value[i]).toBytes()]);
                             }
                         }
                 }
+                let totalLength = 0;
+                toConcat.forEach(arr => {
+                    totalLength += arr.length;
+                });
+                byteArrayContent = new Uint8Array(totalLength);
+
+                let offset = 0;
+                toConcat.forEach(arr => {
+                    byteArrayContent.set(arr, offset);
+                    offset += arr.length;
+                });
 
                 contentSize =
                     4

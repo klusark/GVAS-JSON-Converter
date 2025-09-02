@@ -1,11 +1,11 @@
 const {getStringByteSize} = require("../sav-writer");
 
-class Int64Property {
+class DoubleProperty {
     static SIZE_EIGHT = [0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
 
     constructor(name, savReader) {
         this.name = name;
-        this.type = "Int64Property";
+        this.type = "DoubleProperty";
         savReader.skipBytes(8); // contains value size
 
         this.hasGuid = savReader.readBoolean();
@@ -23,7 +23,7 @@ class Int64Property {
     write(savWriter) {
         savWriter.writeString(this.name);
         savWriter.writeString(this.type);
-        savWriter.writeArray(Int64Property.SIZE_EIGHT);
+        savWriter.writeArray(DoubleProperty.SIZE_EIGHT);
 
         savWriter.writeBoolean(this.hasGuid);
         if (this.hasGuid) {
@@ -42,4 +42,4 @@ class Int64Property {
     }
 }
 
-module.exports = Int64Property;
+module.exports = DoubleProperty;

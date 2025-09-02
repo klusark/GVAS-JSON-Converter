@@ -1,7 +1,7 @@
 const {
-    HeaderProperty, NoneProperty, BoolProperty, IntProperty, UInt32Property, Int64Property, StrProperty,
+    HeaderProperty, NoneProperty, BoolProperty, IntProperty, UInt32Property, Int64Property, StrProperty, TextProperty,
     EnumProperty, FloatProperty, StructProperty, ArrayProperty, MulticastInlineDelegateProperty, MapProperty,
-    SetProperty, ObjectProperty, ByteProperty, FileEndProperty, NameProperty
+    SetProperty, ObjectProperty, ByteProperty, FileEndProperty, NameProperty, DoubleProperty
 } = require("./properties");
 
 // https://stackoverflow.com/a/50868276
@@ -17,6 +17,8 @@ class SavReader {
         this.fileSize = fileArrayBuffer.byteLength;
         this.dataView = new DataView(fileArrayBuffer);
         this.propertyHistogram = {};
+        this.saveGameVersion = 3
+        this.histogram = false;
     }
 
     readWholeBuffer() {
@@ -25,6 +27,7 @@ class SavReader {
         // this.logProgress();
 
         const headerProperty = this.readHeader();
+        this.saveGameVersion = headerProperty.saveGameVersion;
         // console.log(JSON.stringify(headerProperty, null, 2));
         output.push(headerProperty);
         // this.logProgress();
@@ -37,13 +40,15 @@ class SavReader {
             // console.log("next: ", this.offset);
         }
 
-        const sortedHistogram = Object.entries(this.propertyHistogram)
-            .sort((a, b) => b[1] - a[1])
-            .reduce((acc, [key, val]) => {
-                acc[key] = val;
-                return acc;
-            }, {});
-        console.table(sortedHistogram);
+        if (this.histogram) {
+            const sortedHistogram = Object.entries(this.propertyHistogram)
+                .sort((a, b) => b[1] - a[1])
+                .reduce((acc, [key, val]) => {
+                    acc[key] = val;
+                    return acc;
+                }, {});
+            console.table(sortedHistogram);
+        }
 
         return output;
     }
@@ -60,7 +65,7 @@ class SavReader {
         return new HeaderProperty(this);
     }
 
-    readProperty() {
+    readProperty(inStruct = false) {
 
         if (this.offset + FileEndProperty.bytes.length === this.fileSize) {
             const assumedFileEnd = new Uint8Array(this.fileArrayBuffer.slice(this.offset, this.offset + FileEndProperty.bytes.length));
@@ -106,13 +111,19 @@ class SavReader {
             case "MulticastInlineDelegateProperty":
                 return new MulticastInlineDelegateProperty(name, this);
             case "MapProperty":
-                return new MapProperty(name, this);
+                return new MapProperty(name, this, inStruct);
             case "SetProperty":
                 return new SetProperty(name, this);
             case "ObjectProperty":
                 return new ObjectProperty(name, this);
             case "ByteProperty":
                 return new ByteProperty(name, this);
+            case "TextProperty":
+                return new TextProperty(name, this);
+            case "DoubleProperty":
+                return new DoubleProperty(name, this);
+            case "None":
+                return new NoneProperty();
             default:
                 throw new Error("Unknown property type: " + type);
         }

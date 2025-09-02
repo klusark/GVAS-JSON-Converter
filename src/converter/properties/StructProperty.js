@@ -28,10 +28,41 @@ class StructProperty {
             return this;
         }
 
+        if (this.subtype === "Quat") {
+            let x = savReader.dataView.getFloat64(savReader.offset, true);
+            let ix = savReader.readInt64();
+            let y = savReader.dataView.getFloat64(savReader.offset, true);
+            let iy = savReader.readInt64();
+            let z = savReader.dataView.getFloat64(savReader.offset, true);
+            let iz = savReader.readInt64();
+            let w = savReader.dataView.getFloat64(savReader.offset, true);
+            let iw = savReader.readInt64();
+            this.value = {x:x, y:y, z:z, w:w, ix:ix, iy:iy, iz:iz, iw:iw};
+            return this;
+        }
+
+        if (this.subtype === "Vector") {
+            let x = savReader.readFloat64();
+            let y = savReader.readFloat64();
+            let z = savReader.readFloat64();
+            this.value = {x:x, y:y, z:z};
+            return this;
+        }
+
+        if (this.subtype === "LinearColor") {
+            this.value = savReader.readBytes(16);
+            return this;
+        }
+
+        if (this.subtype === "Rotator") {
+            this.value = savReader.readBytes(24);
+            return this;
+        }
+
         this.value = [];
 
         while (savReader.offset < contentEndPosition) {
-            this.value.push(savReader.readProperty());
+            this.value.push(savReader.readProperty(true));
         }
     }
 
@@ -77,6 +108,59 @@ class StructProperty {
                 ...writeBytes(this.guid + "00"),
                 ...writeFloat64(x),
                 ...writeFloat64(y)
+            ]);
+        }
+
+        if (this.subtype === "Vector") {
+            return new Uint8Array([
+                ...writeString(this.name),
+                ...writeString(this.type),
+                ...writeUint32(24),
+                ...StructProperty.padding,
+                ...writeString("Vector"),
+                ...writeBytes(this.guid + "00"),
+                ...writeFloat64(this.value.x),
+                ...writeFloat64(this.value.y),
+                ...writeFloat64(this.value.z)
+            ]);
+        }
+
+        if (this.subtype === "Quat") {
+            return new Uint8Array([
+                ...writeString(this.name),
+                ...writeString(this.type),
+                ...writeUint32(32),
+                ...StructProperty.padding,
+                ...writeString("Quat"),
+                ...writeBytes(this.guid + "00"),
+                ...writeInt64(this.value.ix),
+                ...writeInt64(this.value.iy),
+                ...writeInt64(this.value.iz),
+                ...writeInt64(this.value.iw)
+            ]);
+        }
+
+        if (this.subtype === "LinearColor") {
+            return new Uint8Array([
+                ...writeString(this.name),
+                ...writeString(this.type),
+                ...writeUint32(16),
+                ...StructProperty.padding,
+                ...writeString("LinearColor"),
+                ...writeBytes(this.guid + "00"),
+                ...writeBytes(this.value)
+            ]);
+        }
+
+        if (this.subtype === "Rotator") {
+            return new Uint8Array([
+                ...writeString(this.name),
+                ...writeString(this.type),
+                ...writeUint32(24),
+                ...StructProperty.padding,
+                ...writeString("Rotator"),
+                ...writeBytes(this.guid + "00"),
+                ...writeBytes(this.value)
             ]);
         }
 

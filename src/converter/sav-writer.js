@@ -86,9 +86,9 @@ class SavWriter {
 // }
 
     // // https://stackoverflow.com/a/50868276
-    // function writeBytes(hexString) {
-    //     return Uint8Array.from(hexString.match(/../g).map((byte) => parseInt(byte, 16)));
-    // }
+    writeBytes(hexString) {
+        this.writeArray(hexString.match(/../g).map((byte) => parseInt(byte, 16)));
+    }
 
 }
 
