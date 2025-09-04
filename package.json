@@ -1,6 +1,10 @@
 {
   "name": "gvas-json-converter",
   "description": "Convert Unreal Engine .sav files to JSON and vice versa.",
+  "main": "src/converter/converter.js",
+  "exports": {
+    ".": "./src/converter/converter.js"
+  },
   "dependencies": {},
   "devDependencies": {
     "@types/jest": "latest",

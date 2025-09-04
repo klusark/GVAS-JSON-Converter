@@ -18,8 +18,12 @@ function assignPrototype(rawProperty) {
     return instance;
 }
 
+function convertSavToRaw(savFileArrayBuffer) {
+    return new SavReader(savFileArrayBuffer).readWholeBuffer();
+}
+
 function convertSavToJson(savFileArrayBuffer) {
-    const parsedContent = new SavReader(savFileArrayBuffer).readWholeBuffer();
+    const parsedContent = convertSavToRaw(savFileArrayBuffer);
     return JSON.stringify(parsedContent, null, 2);
 }
 
@@ -51,5 +55,6 @@ module.exports = {
     convertSavToJson,
     convertJsonToSav,
     convertRawToSav,
+    convertSavToRaw,
     assignPrototype
 };
